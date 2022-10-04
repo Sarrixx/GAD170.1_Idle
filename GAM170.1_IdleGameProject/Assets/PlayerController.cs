@@ -13,12 +13,22 @@ public class PlayerController : MonoBehaviour
     private CharacterController controller;
     private float velocity = 0;
 
+    public bool CanMove { get; set; } = true;
+
+    /// <summary>
+    /// Awake is called before Start
+    /// </summary>
     private void Awake()
     {
-        TryGetComponent(out controller);
+        if(TryGetComponent(out controller) == true)
+        {
+            interactionText.gameObject.SetActive(false);
+        }
     }
 
-    // May run more than once per frame
+    /// <summary>
+    /// May run more than once per frame
+    /// </summary>
     private void FixedUpdate()
     {
         if(controller.isGrounded == true)
@@ -31,26 +41,35 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    // Update is called once per frame
+    /// <summary>
+    /// Update is called once per frame
+    /// </summary>
     void Update()
     {
+        Vector3 motionStep = Vector3.zero;
         float inputX = Input.GetAxisRaw("Horizontal");
 
-        if (controller.isGrounded == true)
+        if (CanMove == true)
         {
-            if(Input.GetButtonDown("Jump") == true)
+            if (controller.isGrounded == true)
             {
-                velocity = jumpForce;
+                if (Input.GetButtonDown("Jump") == true)
+                {
+                    velocity = jumpForce;
+                }
             }
-        }
 
-        Vector3 motionStep = Vector3.zero;
-        motionStep += transform.right * inputX * moveSpeed;
+            motionStep += transform.right * inputX * moveSpeed;
+        }
         motionStep.y += velocity;
         motionStep.z = 0;
         controller.Move(motionStep * Time.deltaTime);
     }
 
+    /// <summary>
+    /// Toggles the interaction text and updates it to displayed the passed message.
+    /// </summary>
+    /// <param name="message">The new message the interaction text will display. If null, turns text off.</param>
     public void UpdateInteractionText(string message)
     {
         if (message == null)

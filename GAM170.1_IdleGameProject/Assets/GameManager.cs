@@ -1,41 +1,59 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
 {
-    //variable definitions -> DONE
-    //variables being set on the basis of conditions being met -> DONE
-    //casting variables -> DONE
-    //variables modifying other variables -> DONE
-    //variables being set to random values -> DONE
-    //operands + - / * = == -> DONE
-    //if else statements -> DONE
-    //testing variables via debugging -> DONE
-    //appropriate camel casing -> DONE
-    //win and loss conditions and game restarting
-
     private enum IntervalType { second, tenSeconds, thirtySeconds, minute }
 
-    [SerializeField] private IntervalType incrementInterval = IntervalType.second;
+    [Tooltip("Defines the length time an 'interval' is.")]
+    [SerializeField] private IntervalType intervalIncrement = IntervalType.second;
     [Header("Upgrade Settings")]
+    [Tooltip("Defines the value by which upgrade costs are multiplied.")]
     [Range(0.5f, 10f)] [SerializeField] private float costModifier = 1.5f;
-    [SerializeField] private float upgradeACost = 25, upgradeBCost = 50, upgradeCCost = 125, upgradeDCost = 250, upgradeECost = 1000;
     [Header("General UI Settings")]
+    [Tooltip("Defines the name of the game's currency.")]
     [SerializeField] private string currencyName = "Money";
+    [Tooltip("Defines the fraction of time that the currency text scroll animation lasts for.")]
     [Range(0.1f, 1f)][SerializeField] private float scrollTime = 0.25f;
-    [SerializeField] AnimationCurve curve;
+    [Tooltip("Defines the curve used by the text scroll animation.")]
+    [SerializeField] AnimationCurve scrollCurve;
     [Header("UI References")]
+    [Tooltip("Reference to the UI text display for the player's currency.")]
     [SerializeField] private Text currentValueText;
-    [SerializeField] private Text incrementPerSecondText;
-    [SerializeField] private Text aCostText, bCostText, cCostText, dCostText, eCostText;
+    [Tooltip("Reference to the UI text display for the player's interval earnings.")]
+    [SerializeField] private Text incrementPerIntervalText;
+    [Tooltip("Reference to the UI text display for the player's remaining debt.")]
+    [SerializeField] private Text remainingText;
+    [Tooltip("Reference to the UI text for upgrade A.")]
+    [SerializeField] private Text aCostText;
+    [Tooltip("Reference to the UI text for upgrade B.")]
+    [SerializeField] private Text bCostText;
+    [Tooltip("Reference to the UI text for upgrade C.")]
+    [SerializeField] private Text cCostText;
+    [Tooltip("Reference to the UI text for upgrade D.")]
+    [SerializeField] private Text dCostText;
+    [Tooltip("Reference to the UI text for upgrade E.")]
+    [SerializeField] private Text eCostText;
 
     private float intervalTimer = -1, lerpTimer = -1;
 
+    private static float upgradeACost = 25, upgradeBCost = 50, upgradeCCost = 125, upgradeDCost = 250, upgradeECost = 1000;
+
+    /// <summary>
+    /// The currency value currently being displayed.
+    /// </summary>
     public static float DisplayedCurrencyValue { get; private set; } = 0;
+    /// <summary>
+    /// The player's actual currency value.
+    /// </summary>
     public static float ActualCurrencyValue { get; private set; } = 0;
-    public static float CurrencyPerSecond { get; private set; } = 0;
+    /// <summary>
+    /// The currency earned per interval.
+    /// </summary>
+    public static float CurrencyPerInterval { get; private set; } = 0;
 
     /// <summary>
     /// Returns an interval float value based on the value of the interval enum.
@@ -45,7 +63,7 @@ public class GameManager : MonoBehaviour
         get
         {
             //return value corresponding with enum label
-            switch (incrementInterval) 
+            switch (intervalIncrement) 
             {
                 case IntervalType.second:
                     return 1f;
@@ -69,12 +87,13 @@ public class GameManager : MonoBehaviour
         intervalTimer = 0; //Initiates the '1 second' timer
         //Set the initial UI text values
         currentValueText.text = currencyName + ": " + DisplayedCurrencyValue;
-        incrementPerSecondText.text = currencyName + " per " + Interval + " seconds: " + CurrencyPerSecond;
-        aCostText.text = "1. Upgrade A Cost: " + upgradeACost;
-        bCostText.text = "2. Upgrade B Cost: " + upgradeBCost;
-        cCostText.text = "3. Upgrade C Cost: " + upgradeCCost;
-        dCostText.text = "4. Upgrade D Cost: " + upgradeDCost;
-        eCostText.text = "5. Upgrade E Cost: " + upgradeECost;
+        incrementPerIntervalText.text = currencyName + " per " + Interval + " seconds: " + CurrencyPerInterval;
+        remainingText.text = "Remaining debt: " + string.Format("{0:n0}", (100000 - ActualCurrencyValue)); //format remaining as number with comma
+        aCostText.text = "1. Upgrade A Cost: " + Mathf.CeilToInt(upgradeACost);
+        bCostText.text = "2. Upgrade B Cost: " + Mathf.CeilToInt(upgradeBCost);
+        cCostText.text = "3. Upgrade C Cost: " + Mathf.CeilToInt(upgradeCCost);
+        dCostText.text = "4. Upgrade D Cost: " + Mathf.CeilToInt(upgradeDCost);
+        eCostText.text = "5. Upgrade E Cost: " + Mathf.CeilToInt(upgradeECost);
     }
 
     /// <summary>
@@ -83,24 +102,24 @@ public class GameManager : MonoBehaviour
     void Update()
     {
         //interval timer functionality
-        if(intervalTimer >= 0)
+        if (intervalTimer >= 0)
         {
             intervalTimer += Time.deltaTime; //increment timer by time from last frame to this frame
-            if(intervalTimer >= Interval) //if timer has expired
+            if (intervalTimer >= Interval) //if timer has expired
             {
                 //generate random value, and increment currency (1 in 4 chance to only increment by half of currency per second)
                 int randomNo = Random.Range(0, 100);
                 if (randomNo > 24)
                 {
-                    AddCurrency(CurrencyPerSecond);
+                    AddCurrency(CurrencyPerInterval);
                     Debug.Log("Random value is " + randomNo + ". Increment per second added to current currency. Current currency is " + ActualCurrencyValue);
-                    incrementPerSecondText.color = Color.white; //change UI text color to white
+                    incrementPerIntervalText.color = Color.white; //change UI text color to white
                 }
                 else
                 {
-                    AddCurrency(CurrencyPerSecond / 2);
+                    AddCurrency(CurrencyPerInterval / 2);
                     Debug.Log("Random value is " + randomNo + ". Half of increment per second added to current currency. Current currency is " + ActualCurrencyValue);
-                    incrementPerSecondText.color = Color.red; //change UI text color to red
+                    incrementPerIntervalText.color = Color.red; //change UI text color to red
                 }
                 //reset timers to 0
                 intervalTimer = 0;
@@ -114,7 +133,7 @@ public class GameManager : MonoBehaviour
             lerpTimer += Time.deltaTime; //increment timer by time from last frame to this frame
             if (DisplayedCurrencyValue != ActualCurrencyValue) //continue interpolating toward actual value if displayed value does not yet match
             {
-                DisplayedCurrencyValue = (int)Mathf.Lerp(DisplayedCurrencyValue, ActualCurrencyValue, curve.Evaluate(lerpTimer / scrollTime));
+                DisplayedCurrencyValue = (int)Mathf.Lerp(DisplayedCurrencyValue, ActualCurrencyValue, scrollCurve.Evaluate(lerpTimer / scrollTime));
             }
             currentValueText.text = currencyName + ": " + DisplayedCurrencyValue; //Update currency UI text
             if (lerpTimer >= scrollTime) //turn off lerp timer if it has expired
@@ -124,17 +143,10 @@ public class GameManager : MonoBehaviour
         }
 
         //Player input functionality
-        if(Input.GetKeyDown(KeyCode.Space) == true)
-        {
-            //Spacebar pressed, increment currency by 1 and update UI text
-            //both currency tracking variables are incremented to bypass timer
-            AddCurrency(1, true);
-            Debug.Log("Added 1 to current currency.");
-        }
-        else if (Input.GetKeyDown(KeyCode.Alpha1) == true)
+        if (Input.GetKeyDown(KeyCode.Alpha1) == true)
         {
             //Alpha 1 pressed, if upgrade A purchase successful increment associated cost and update UI text
-            if(UpgradeIncrementPerSecond(upgradeACost, 0.5f) == true)
+            if (UpgradeIncrementPerSecond(upgradeACost, 0.5f) == true)
             {
                 upgradeACost *= costModifier;
                 aCostText.text = "1. Upgrade A Cost: " + Mathf.CeilToInt(upgradeACost);
@@ -181,6 +193,10 @@ public class GameManager : MonoBehaviour
                 Debug.Log("Upgrade E purchased. New cost is " + upgradeECost);
             }
         }
+        else if (Input.GetKeyDown(KeyCode.Space) == true)
+        {
+            SceneManager.LoadScene(0);
+        }
     }
 
     /// <summary>
@@ -195,15 +211,20 @@ public class GameManager : MonoBehaviour
     {
         if(ActualCurrencyValue >= cost)
         {
-            CurrencyPerSecond += incrementAmount;
+            CurrencyPerInterval += incrementAmount;
             AddCurrency(-cost);
             lerpTimer = 0;
-            incrementPerSecondText.text = currencyName + " per " + Interval + " seconds: " + CurrencyPerSecond;
+            incrementPerIntervalText.text = currencyName + " per " + Interval + " seconds: " + CurrencyPerInterval;
             return true;
         }
         return false;
     }
 
+    /// <summary>
+    /// Adds the passed amount to the player's current currency.
+    /// </summary>
+    /// <param name="amount">The amount of currency to add to the current amount. May be negative.</param>
+    /// <param name="overrideDisplayedCurrency">If true, will also override the currently displayed currency value.</param>
     private void AddCurrency(float amount, bool overrideDisplayedCurrency = false)
     {
         ActualCurrencyValue += amount;
@@ -211,6 +232,8 @@ public class GameManager : MonoBehaviour
         {
             ActualCurrencyValue = 0;
         }
+        Debug.Log("Added " + amount + " to current currency.");
+        remainingText.text = "Remaining debt: " + string.Format("{0:n0}", (100000 - ActualCurrencyValue)); //format remaining as number with comma
         if (overrideDisplayedCurrency == true)
         {
             DisplayedCurrencyValue += amount;
@@ -222,10 +245,26 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Use to add one to value when UI window button is clicked.
+    /// </summary>
+    public void ClickButton()
+    {
+        AddCurrency(1, true);
+    }
+
+    /// <summary>
+    /// Resets all static values associated with the GameManager.
+    /// </summary>
     public static void ResetStaticValues()
     {
         DisplayedCurrencyValue = 0;
         ActualCurrencyValue = 0;
-        CurrencyPerSecond = 0;
+        CurrencyPerInterval = 0;
+        upgradeACost = 0;
+        upgradeBCost = 0;
+        upgradeCCost = 0;
+        upgradeDCost = 0;
+        upgradeECost = 0;
     }
 }
