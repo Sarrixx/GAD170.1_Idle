@@ -1,11 +1,14 @@
 using System.Collections;
 using System.Collections.Generic;
+using UnityEditor.PackageManager;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class DebtCollectorTrigger : MonoBehaviour
 {
     public delegate void GameEventDelegate();
+
+    [SerializeField] private GameObject innerColliders;
 
     private PlayerController player;
 
@@ -45,9 +48,8 @@ public class DebtCollectorTrigger : MonoBehaviour
                         if (GameManager.ActualCurrencyValue >= 100000) //first objective complete
                         {
                             paid = true;
-                            //activate quest timer
-                            //activate quest target object
-                            //deactivate inner bounds
+                            innerColliders.SetActive(false); //deactivate inner bounds
+                            StartCoroutine(DialogueResponse_ObjectiveComplete(3f)); //start positive dialogue coroutine
                         }
                         else //was unable to complete first objective
                         {
@@ -58,7 +60,7 @@ public class DebtCollectorTrigger : MonoBehaviour
                             }
                             else
                             {
-                                StartCoroutine(DialogueResponse_ObjectiveIncomplete(3f, "Chances remaining: " + chances)); //start negative dialogue coroutine
+                                StartCoroutine(DialogueResponse_ObjectiveIncomplete(3f)); //start negative dialogue coroutine
                             }
                         }
                     }
@@ -105,13 +107,30 @@ public class DebtCollectorTrigger : MonoBehaviour
     /// <param name="delay"></param>
     /// <param name="nextMessage"></param>
     /// <returns></returns>
-    private IEnumerator DialogueResponse_ObjectiveIncomplete(float delay, string nextMessage)
+    private IEnumerator DialogueResponse_ObjectiveIncomplete(float delay)
     {
         player.UpdateInteractionText("Licks remaining: " + string.Format("{0:n0}", 100000 - GameManager.ActualCurrencyValue));
         yield return new WaitForSeconds(delay);
-        player.UpdateInteractionText(nextMessage);
+        player.UpdateInteractionText("Chances remaining: " + chances);
         yield return new WaitForSeconds(delay);
         player.CanMove = true;
+        player.UpdateInteractionText("Press F to talk to the debt collector.");
+    }
+
+    /// <summary>
+    /// Coroutine used to change dialogue text.
+    /// </summary>
+    /// <param name="delay"></param>
+    /// <param name="nextMessage"></param>
+    /// <returns></returns>
+    private IEnumerator DialogueResponse_ObjectiveComplete(float delay)
+    {
+        player.UpdateInteractionText("Your debt has been settled.");
+        yield return new WaitForSeconds(delay);
+        player.UpdateInteractionText("");
+        yield return new WaitForSeconds(delay);
+        player.CanMove = true;
+        //start quest timer
         player.UpdateInteractionText("Press F to talk to the debt collector.");
     }
 }

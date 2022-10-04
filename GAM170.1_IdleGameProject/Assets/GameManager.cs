@@ -86,9 +86,9 @@ public class GameManager : MonoBehaviour
     {
         intervalTimer = 0; //Initiates the '1 second' timer
         //Set the initial UI text values
-        currentValueText.text = currencyName + ": " + DisplayedCurrencyValue;
+        currentValueText.text = currencyName + ": " + string.Format("{0:n0}", DisplayedCurrencyValue);
         incrementPerIntervalText.text = currencyName + " per " + Interval + " seconds: " + CurrencyPerInterval;
-        remainingText.text = "Remaining debt: " + string.Format("{0:n0}", (100000 - ActualCurrencyValue)); //format remaining as number with comma
+        remainingText.text = "Remaining debt: " + string.Format("{0:n0}", Mathf.Clamp(100000 - ActualCurrencyValue, 0, 100000)); //format remaining as number with comma
         aCostText.text = "1. Upgrade A Cost: " + Mathf.CeilToInt(upgradeACost);
         bCostText.text = "2. Upgrade B Cost: " + Mathf.CeilToInt(upgradeBCost);
         cCostText.text = "3. Upgrade C Cost: " + Mathf.CeilToInt(upgradeCCost);
@@ -135,7 +135,7 @@ public class GameManager : MonoBehaviour
             {
                 DisplayedCurrencyValue = (int)Mathf.Lerp(DisplayedCurrencyValue, ActualCurrencyValue, scrollCurve.Evaluate(lerpTimer / scrollTime));
             }
-            currentValueText.text = currencyName + ": " + DisplayedCurrencyValue; //Update currency UI text
+            currentValueText.text = currencyName + ": " + string.Format("{0:n0}", DisplayedCurrencyValue); //update currency UI text
             if (lerpTimer >= scrollTime) //turn off lerp timer if it has expired
             {
                 lerpTimer = -1;
@@ -233,7 +233,7 @@ public class GameManager : MonoBehaviour
             ActualCurrencyValue = 0;
         }
         Debug.Log("Added " + amount + " to current currency.");
-        remainingText.text = "Remaining debt: " + string.Format("{0:n0}", (100000 - ActualCurrencyValue)); //format remaining as number with comma
+        remainingText.text = "Remaining debt: " + string.Format("{0:n0}", Mathf.Clamp(100000 - ActualCurrencyValue, 0, 100000)); //format remaining as number with comma
         if (overrideDisplayedCurrency == true)
         {
             DisplayedCurrencyValue += amount;
@@ -241,7 +241,7 @@ public class GameManager : MonoBehaviour
             {
                 DisplayedCurrencyValue = 0;
             }
-            currentValueText.text = currencyName + ": " + DisplayedCurrencyValue;
+            currentValueText.text = currencyName + ": " + string.Format("{0:n0}", DisplayedCurrencyValue);
         }
     }
 
