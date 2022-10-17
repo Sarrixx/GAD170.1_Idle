@@ -9,6 +9,7 @@ public class DebtCollectorTrigger : MonoBehaviour
     public delegate void GameEventDelegate();
 
     [SerializeField] private GameObject innerColliders;
+    [SerializeField] private Animator npcAnim;
 
     private PlayerController player;
 
@@ -25,7 +26,8 @@ public class DebtCollectorTrigger : MonoBehaviour
         //Subscribe anonymous method to event
         GameEndEvent = delegate 
         { 
-            chances = 0; //reset chances to 0 for next game
+            chances = 3; //reset chances to 3 for next game
+            paid = false;
             SceneManager.LoadScene(0); //reload the scene
         };
         GameEndEvent += GameManager.ResetStaticValues; //subscribe GameManager method to event
@@ -109,10 +111,14 @@ public class DebtCollectorTrigger : MonoBehaviour
     /// <returns></returns>
     private IEnumerator DialogueResponse_ObjectiveIncomplete(float delay)
     {
+        npcAnim.SetBool("talking", true);
+        player.Anim.SetBool("talking", true);
         player.UpdateInteractionText("Licks remaining: " + string.Format("{0:n0}", 100000 - GameManager.ActualCurrencyValue));
         yield return new WaitForSeconds(delay);
         player.UpdateInteractionText("Chances remaining: " + chances);
         yield return new WaitForSeconds(delay);
+        npcAnim.SetBool("talking", false);
+        player.Anim.SetBool("talking", false);
         player.CanMove = true;
         player.UpdateInteractionText("Press F to talk to the debt collector.");
     }
@@ -125,10 +131,14 @@ public class DebtCollectorTrigger : MonoBehaviour
     /// <returns></returns>
     private IEnumerator DialogueResponse_ObjectiveComplete(float delay)
     {
+        npcAnim.SetBool("talking", true);
+        player.Anim.SetBool("talking", true);
         player.UpdateInteractionText("Your debt has been settled.");
         yield return new WaitForSeconds(delay);
-        player.UpdateInteractionText("");
+        player.UpdateInteractionText(""); //quest text
         yield return new WaitForSeconds(delay);
+        npcAnim.SetBool("talking", false);
+        player.Anim.SetBool("talking", false);
         player.CanMove = true;
         //start quest timer
         player.UpdateInteractionText("Press F to talk to the debt collector.");

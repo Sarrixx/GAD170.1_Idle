@@ -5,7 +5,10 @@ using UnityEngine.SceneManagement;
 
 public class LevelTransitionTrigger : MonoBehaviour
 {
+    [SerializeField] private Animator canvasAnim;
+
     private PlayerController player;
+    private bool loading = false;
 
     private void Update()
     {
@@ -13,12 +16,19 @@ public class LevelTransitionTrigger : MonoBehaviour
         {
             if (player.CanMove == true)
             {
-                if (Input.GetKeyDown(KeyCode.F) == true)
+                if (Input.GetKeyDown(KeyCode.F) == true && loading == false)
                 {
-                    SceneManager.LoadScene(1);
+                    loading = true;
+                    StartCoroutine(LoadIdle());
                 }
             }
         }
+    }
+    private IEnumerator LoadIdle()
+    {
+        canvasAnim.SetTrigger("fade");
+        yield return new WaitForSeconds(1f);
+        SceneManager.LoadScene(1);
     }
 
     private void OnTriggerEnter(Collider other)

@@ -25,6 +25,8 @@ public class GameManager : MonoBehaviour
     [SerializeField] private Text currentValueText;
     [Tooltip("Reference to the UI text display for the player's interval earnings.")]
     [SerializeField] private Text incrementPerIntervalText;
+    [Tooltip("Reference to the UI penalty text display.")]
+    [SerializeField] private Text penaltyText;
     [Tooltip("Reference to the UI text display for the player's remaining debt.")]
     [SerializeField] private Text remainingText;
     [Tooltip("Reference to the UI text for upgrade A.")]
@@ -39,6 +41,9 @@ public class GameManager : MonoBehaviour
     [SerializeField] private Text eCostText;
 
     private float intervalTimer = -1, lerpTimer = -1;
+    private Animator anim;
+    private int a = 0;
+    private bool loading = false;
 
     private static float upgradeACost = 25, upgradeBCost = 50, upgradeCCost = 125, upgradeDCost = 250, upgradeECost = 1000;
 
@@ -47,9 +52,17 @@ public class GameManager : MonoBehaviour
     /// </summary>
     public static float DisplayedCurrencyValue { get; private set; } = 0;
     /// <summary>
+    /// The debt value currently being displayed.
+    /// </summary>
+    public static float DisplayedDebtValue { get; private set; } = 0;
+    /// <summary>
     /// The player's actual currency value.
     /// </summary>
     public static float ActualCurrencyValue { get; private set; } = 0;
+    /// <summary>
+    /// The player's actual debt value.
+    /// </summary>
+    public static float ActualDebtValue { get; private set; } = 100000;
     /// <summary>
     /// The currency earned per interval.
     /// </summary>
@@ -79,16 +92,23 @@ public class GameManager : MonoBehaviour
         } 
     }
 
+    private void Awake()
+    {
+        transform.root.TryGetComponent(out anim);
+    }
+
     /// <summary>
     /// Start is called before the first frame update.
     /// </summary>
     void Start()
     {
         intervalTimer = 0; //Initiates the '1 second' timer
+        lerpTimer = 0;
+        penaltyText.gameObject.SetActive(false);
         //Set the initial UI text values
         currentValueText.text = currencyName + ": " + string.Format("{0:n0}", DisplayedCurrencyValue);
         incrementPerIntervalText.text = currencyName + " per " + Interval + " seconds: " + CurrencyPerInterval;
-        remainingText.text = "Remaining debt: " + string.Format("{0:n0}", Mathf.Clamp(100000 - ActualCurrencyValue, 0, 100000)); //format remaining as number with comma
+        remainingText.text = "Remaining debt: " + string.Format("{0:n0}", Mathf.Clamp(DisplayedDebtValue, 0, 100000)); //format remaining as number with comma
         aCostText.text = "1. Upgrade A Cost: " + Mathf.CeilToInt(upgradeACost);
         bCostText.text = "2. Upgrade B Cost: " + Mathf.CeilToInt(upgradeBCost);
         cCostText.text = "3. Upgrade C Cost: " + Mathf.CeilToInt(upgradeCCost);
@@ -107,19 +127,33 @@ public class GameManager : MonoBehaviour
             intervalTimer += Time.deltaTime; //increment timer by time from last frame to this frame
             if (intervalTimer >= Interval) //if timer has expired
             {
-                //generate random value, and increment currency (1 in 4 chance to only increment by half of currency per second)
-                int randomNo = Random.Range(0, 100);
-                if (randomNo > 24)
+                if (CurrencyPerInterval > 0 && ActualCurrencyValue < 100000)
                 {
-                    AddCurrency(CurrencyPerInterval);
-                    Debug.Log("Random value is " + randomNo + ". Increment per second added to current currency. Current currency is " + ActualCurrencyValue);
-                    incrementPerIntervalText.color = Color.white; //change UI text color to white
-                }
-                else
-                {
-                    AddCurrency(CurrencyPerInterval / 2);
-                    Debug.Log("Random value is " + randomNo + ". Half of increment per second added to current currency. Current currency is " + ActualCurrencyValue);
-                    incrementPerIntervalText.color = Color.red; //change UI text color to red
+                    //generate random value, and increment currency (1 in 4 chance to only increment by half of currency per second)
+                    int randomNo = Random.Range(0, 100);
+                    if (randomNo > 24)
+                    {
+                        AddCurrency(CurrencyPerInterval);
+                        Debug.Log("Random value is " + randomNo + ". Increment per second added to current currency. Current currency is " + ActualCurrencyValue);
+                        incrementPerIntervalText.color = Color.white; //change UI text color to white
+                        penaltyText.gameObject.SetActive(false);
+                    }
+                    else
+                    {
+                        AddCurrency(CurrencyPerInterval / 2);
+                        Debug.Log("Random value is " + randomNo + ". Half of increment per second added to current currency. Current currency is " + ActualCurrencyValue);
+                        incrementPerIntervalText.color = Color.red; //change UI text color to red
+                        penaltyText.gameObject.SetActive(true);
+                    }
+                    if (a < 1)
+                    {
+                        a++;
+                    }
+                    else
+                    {
+                        a = 0;
+                    }
+                    anim.SetTrigger("lick" + a);
                 }
                 //reset timers to 0
                 intervalTimer = 0;
@@ -134,8 +168,13 @@ public class GameManager : MonoBehaviour
             if (DisplayedCurrencyValue != ActualCurrencyValue) //continue interpolating toward actual value if displayed value does not yet match
             {
                 DisplayedCurrencyValue = (int)Mathf.Lerp(DisplayedCurrencyValue, ActualCurrencyValue, scrollCurve.Evaluate(lerpTimer / scrollTime));
+                currentValueText.text = currencyName + ": " + string.Format("{0:n0}", DisplayedCurrencyValue); //update currency UI text
             }
-            currentValueText.text = currencyName + ": " + string.Format("{0:n0}", DisplayedCurrencyValue); //update currency UI text
+            if (DisplayedDebtValue != ActualDebtValue) //continue interpolating toward actual value if displayed value does not yet match
+            {
+                DisplayedDebtValue = Mathf.Lerp(DisplayedDebtValue, ActualDebtValue, scrollCurve.Evaluate(lerpTimer / scrollTime));
+                remainingText.text = "Remaining debt: " + string.Format("{0:n0}", Mathf.Clamp(DisplayedDebtValue, 0, 100000)); //format remaining as number with comma
+            }
             if (lerpTimer >= scrollTime) //turn off lerp timer if it has expired
             {
                 lerpTimer = -1;
@@ -193,10 +232,18 @@ public class GameManager : MonoBehaviour
                 Debug.Log("Upgrade E purchased. New cost is " + upgradeECost);
             }
         }
-        else if (Input.GetKeyDown(KeyCode.Space) == true)
+        else if (Input.GetKeyDown(KeyCode.Space) == true && loading == false)
         {
-            SceneManager.LoadScene(0);
+            loading = true;
+            StartCoroutine(LoadTown());
         }
+    }
+
+    private IEnumerator LoadTown()
+    {
+        anim.SetTrigger("fade");
+        yield return new WaitForSeconds(1f);
+        SceneManager.LoadScene(0);
     }
 
     /// <summary>
@@ -233,7 +280,11 @@ public class GameManager : MonoBehaviour
             ActualCurrencyValue = 0;
         }
         Debug.Log("Added " + amount + " to current currency.");
-        remainingText.text = "Remaining debt: " + string.Format("{0:n0}", Mathf.Clamp(100000 - ActualCurrencyValue, 0, 100000)); //format remaining as number with comma
+        ActualDebtValue -= amount;
+        if(ActualDebtValue < 0)
+        {
+            ActualDebtValue = 0;
+        }
         if (overrideDisplayedCurrency == true)
         {
             DisplayedCurrencyValue += amount;
@@ -242,6 +293,12 @@ public class GameManager : MonoBehaviour
                 DisplayedCurrencyValue = 0;
             }
             currentValueText.text = currencyName + ": " + string.Format("{0:n0}", DisplayedCurrencyValue);
+            DisplayedDebtValue -= amount;
+            if (DisplayedDebtValue < 0)
+            {
+                DisplayedDebtValue = 0;
+            }
+            remainingText.text = "Remaining debt: " + string.Format("{0:n0}", Mathf.Clamp(DisplayedDebtValue, 0, 100000)); //format remaining as number with comma
         }
     }
 
@@ -250,7 +307,19 @@ public class GameManager : MonoBehaviour
     /// </summary>
     public void ClickButton()
     {
-        AddCurrency(1, true);
+        if (ActualCurrencyValue < 100000 && loading == false)
+        {
+            AddCurrency(1, true);
+            if (a < 1)
+            {
+                a++;
+            }
+            else
+            {
+                a = 0;
+            }
+            anim.SetTrigger("lick" + a);
+        }
     }
 
     /// <summary>
@@ -260,11 +329,13 @@ public class GameManager : MonoBehaviour
     {
         DisplayedCurrencyValue = 0;
         ActualCurrencyValue = 0;
+        DisplayedDebtValue = 0;
+        ActualDebtValue = 0;
         CurrencyPerInterval = 0;
-        upgradeACost = 0;
-        upgradeBCost = 0;
-        upgradeCCost = 0;
-        upgradeDCost = 0;
-        upgradeECost = 0;
+        upgradeACost = 25;
+        upgradeBCost = 50;
+        upgradeCCost = 125;
+        upgradeDCost = 250;
+        upgradeECost = 1000;
     }
 }

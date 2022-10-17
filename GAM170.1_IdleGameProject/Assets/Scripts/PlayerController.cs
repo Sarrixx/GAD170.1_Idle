@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Animations;
 using UnityEngine.UI;
 
 public class PlayerController : MonoBehaviour
@@ -8,10 +9,15 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float moveSpeed = 3.5f;
     [SerializeField] private float gravity = 30f;
     [SerializeField] private float jumpForce = 15f;
+    [SerializeField] private bool canJump = false;
     [SerializeField] private Text interactionText;
 
     private CharacterController controller;
+    private SpriteRenderer spriteRenderer;
     private float velocity = 0;
+
+
+    public Animator Anim { get; private set; }
 
     public bool CanMove { get; set; } = true;
 
@@ -24,6 +30,14 @@ public class PlayerController : MonoBehaviour
         {
             interactionText.gameObject.SetActive(false);
         }
+
+        if (TryGetComponent(out Animator anim) == true)
+        {
+            Anim = anim;
+        }
+        spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+        Anim.SetBool("moving", false);
+        Anim.SetBool("talking", false);
     }
 
     /// <summary>
@@ -48,10 +62,18 @@ public class PlayerController : MonoBehaviour
     {
         Vector3 motionStep = Vector3.zero;
         float inputX = Input.GetAxisRaw("Horizontal");
+        if(inputX < 0 && spriteRenderer.flipX == false)
+        {
+            spriteRenderer.flipX = true;
+        }
+        else if(inputX > 0 && spriteRenderer.flipX == true)
+        {
+            spriteRenderer.flipX = false;
+        }
 
         if (CanMove == true)
         {
-            if (controller.isGrounded == true)
+            if (controller.isGrounded == true && canJump == true)
             {
                 if (Input.GetButtonDown("Jump") == true)
                 {
@@ -64,6 +86,14 @@ public class PlayerController : MonoBehaviour
         motionStep.y += velocity;
         motionStep.z = 0;
         controller.Move(motionStep * Time.deltaTime);
+        if(motionStep.x != 0)
+        {
+            Anim.SetBool("moving", true);
+        }
+        else
+        {
+            Anim.SetBool("moving", false);
+        }
     }
 
     /// <summary>
