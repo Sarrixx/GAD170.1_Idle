@@ -7,8 +7,8 @@ public class LevelTransitionTrigger : MonoBehaviour
 {
     [SerializeField] private Animator canvasAnim;
 
-    private PlayerController player;
     private bool loading = false;
+    private PlayerController player;
 
     private void Update()
     {
@@ -37,7 +37,7 @@ public class LevelTransitionTrigger : MonoBehaviour
         {
             if (other.TryGetComponent(out player) == true)
             {
-                player.UpdateInteractionText("Press F to leave town.");
+                player.UpdateInteractionText("Press F to lick the window some more.");
             }
         }
     }

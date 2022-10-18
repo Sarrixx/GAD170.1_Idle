@@ -39,11 +39,15 @@ public class GameManager : MonoBehaviour
     [SerializeField] private Text dCostText;
     [Tooltip("Reference to the UI text for upgrade E.")]
     [SerializeField] private Text eCostText;
+    [Header("Audio")]
+    [Tooltip("Reference to the UI lick audio clips.")]
+    [SerializeField] private AudioClip[] lickClips;
 
     private float intervalTimer = -1, lerpTimer = -1;
-    private Animator anim;
-    private int a = 0;
+    private int lickAnimIndex = 0;
     private bool loading = false;
+    private Animator anim;
+    private AudioSource aSrc;
 
     private static float upgradeACost = 25, upgradeBCost = 50, upgradeCCost = 125, upgradeDCost = 250, upgradeECost = 1000;
 
@@ -95,6 +99,7 @@ public class GameManager : MonoBehaviour
     private void Awake()
     {
         transform.root.TryGetComponent(out anim);
+        TryGetComponent(out aSrc);
     }
 
     /// <summary>
@@ -145,15 +150,16 @@ public class GameManager : MonoBehaviour
                         incrementPerIntervalText.color = Color.red; //change UI text color to red
                         penaltyText.gameObject.SetActive(true);
                     }
-                    if (a < 1)
+                    if (lickAnimIndex < 1)
                     {
-                        a++;
+                        lickAnimIndex++;
                     }
                     else
                     {
-                        a = 0;
+                        lickAnimIndex = 0;
                     }
-                    anim.SetTrigger("lick" + a);
+                    anim.SetTrigger("lick" + lickAnimIndex);
+                    aSrc.PlayOneShot(lickClips[Random.Range(0, lickClips.Length)]);
                 }
                 //reset timers to 0
                 intervalTimer = 0;
@@ -310,15 +316,16 @@ public class GameManager : MonoBehaviour
         if (ActualCurrencyValue < 100000 && loading == false)
         {
             AddCurrency(1, true);
-            if (a < 1)
+            if (lickAnimIndex < 1)
             {
-                a++;
+                lickAnimIndex++;
             }
             else
             {
-                a = 0;
+                lickAnimIndex = 0;
             }
-            anim.SetTrigger("lick" + a);
+            anim.SetTrigger("lick" + lickAnimIndex);
+            aSrc.PlayOneShot(lickClips[Random.Range(0, lickClips.Length)]);
         }
     }
 
@@ -330,7 +337,7 @@ public class GameManager : MonoBehaviour
         DisplayedCurrencyValue = 0;
         ActualCurrencyValue = 0;
         DisplayedDebtValue = 0;
-        ActualDebtValue = 0;
+        ActualDebtValue = 100000;
         CurrencyPerInterval = 0;
         upgradeACost = 25;
         upgradeBCost = 50;

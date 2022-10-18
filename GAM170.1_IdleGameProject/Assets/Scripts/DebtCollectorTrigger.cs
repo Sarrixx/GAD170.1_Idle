@@ -10,7 +10,9 @@ public class DebtCollectorTrigger : MonoBehaviour
 
     [SerializeField] private GameObject innerColliders;
     [SerializeField] private Animator npcAnim;
+    [SerializeField] private Animator canvasAnim;
 
+    private bool loading = false;
     private PlayerController player;
 
     private static int chances = 3;
@@ -28,7 +30,9 @@ public class DebtCollectorTrigger : MonoBehaviour
         { 
             chances = 3; //reset chances to 3 for next game
             paid = false;
-            SceneManager.LoadScene(0); //reload the scene
+            loading = true;
+            player.CanMove = false;
+            StartCoroutine(Reload());
         };
         GameEndEvent += GameManager.ResetStaticValues; //subscribe GameManager method to event
     }
@@ -47,7 +51,7 @@ public class DebtCollectorTrigger : MonoBehaviour
                     player.CanMove = false; //turn player movement off
                     if (paid == false) //if first quest incomplete
                     {
-                        if (GameManager.ActualCurrencyValue >= 100000) //first objective complete
+                        if (GameManager.ActualDebtValue == 0) //first objective complete
                         {
                             paid = true;
                             innerColliders.SetActive(false); //deactivate inner bounds
@@ -68,10 +72,19 @@ public class DebtCollectorTrigger : MonoBehaviour
                     }
                     else
                     {
-                        //if target has been retrieved, game has been won
+                        GameEndEvent.Invoke(); //end the game
                     }
                 }
             }
+        }
+    }
+    private IEnumerator Reload()
+    {
+        if (loading == true)
+        {
+            canvasAnim.SetTrigger("fade");
+            yield return new WaitForSeconds(1f);
+            SceneManager.LoadScene(0);
         }
     }
 
@@ -113,7 +126,7 @@ public class DebtCollectorTrigger : MonoBehaviour
     {
         npcAnim.SetBool("talking", true);
         player.Anim.SetBool("talking", true);
-        player.UpdateInteractionText("Licks remaining: " + string.Format("{0:n0}", 100000 - GameManager.ActualCurrencyValue));
+        player.UpdateInteractionText("Licks remaining: " + string.Format("{0:n0}", GameManager.ActualDebtValue));
         yield return new WaitForSeconds(delay);
         player.UpdateInteractionText("Chances remaining: " + chances);
         yield return new WaitForSeconds(delay);
@@ -135,12 +148,11 @@ public class DebtCollectorTrigger : MonoBehaviour
         player.Anim.SetBool("talking", true);
         player.UpdateInteractionText("Your debt has been settled.");
         yield return new WaitForSeconds(delay);
-        player.UpdateInteractionText(""); //quest text
+        player.UpdateInteractionText("Speak to me again to come in for some milk.");
         yield return new WaitForSeconds(delay);
         npcAnim.SetBool("talking", false);
         player.Anim.SetBool("talking", false);
         player.CanMove = true;
-        //start quest timer
         player.UpdateInteractionText("Press F to talk to the debt collector.");
     }
 }
