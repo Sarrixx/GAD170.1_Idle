@@ -245,13 +245,6 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    private IEnumerator LoadTown()
-    {
-        anim.SetTrigger("fade");
-        yield return new WaitForSeconds(1f);
-        SceneManager.LoadScene(0);
-    }
-
     /// <summary>
     /// Can be used to purchase an upgrade with a specified cost, resulting in the passed increment amount being added
     /// to the current increment per second amount.
@@ -327,6 +320,13 @@ public class GameManager : MonoBehaviour
             anim.SetTrigger("lick" + lickAnimIndex);
             aSrc.PlayOneShot(lickClips[Random.Range(0, lickClips.Length)]);
         }
+    }
+
+    private IEnumerator LoadTown()
+    {
+        anim.SetTrigger("fade");
+        yield return new WaitForSeconds(1f);
+        SceneManager.LoadScene(0);
     }
 
     /// <summary>
